@@ -5,12 +5,7 @@
 (define ln log)
 (define e (exp 1))
 
-;English "translation"
-(define derivative ableitung)
-(define simplify oktotastischeVereinfachung)
-(define evaluate_term berechne)
 
-;Evaluation von termücken
 (define superelement?
   (lambda (el ls)
     (cond
@@ -29,8 +24,8 @@
       [else
        ((eval (list 'lambda (list variable) term)) value)])))
 
-;Differentiationsregeln
-(define ableitung
+;derivation
+(define derivative
   (lambda (term variable)
     (cond
       [(number? term) 0]
@@ -38,97 +33,96 @@
       [(= (length term) 2)
        (let ([op (car term)] [term1 (cadr term)])
          (case op
+           ;derivation of unary operations (only one term)
            [(+)
-            (list '+ (ableitung term1 variable))]
+            (list '+ (derivative term1 variable))]
            [(-)
-            (list '- (ableitung term1 variable))]
+            (list '- (derivative term1 variable))]
            [(sqr)
             (list '*
                   (list '/
                         1
-                        (list '* 2 (ableitung term1 variable)))
-                  (ableitung term1 variable))]
+                        (list '* 2 (derivative term1 variable)))
+                  (derivative term1 variable))]
            [(sin)
             (list '*
                   (list 'cos term1)
-                  (ableitung term1 variable))]
-           ;hier stehen weitere Regeln unärer Operationen
+                  (derivative term1 variable))]
            [else
             'Unbekannt!]))]
       [(= (length term) 3)
        (let ([op (car term)] [term1 (cadr term)] [term2 (caddr term)])
          (case op
+           ;derivation of binary operations (two terms)
            [(+)
-            (list '+ (ableitung term1 variable) (ableitung term2 variable))]
+            (list '+ (derivative term1 variable) (derivative term2 variable))]
            [(-)
-            (list '- (ableitung term1 variable) (ableitung term2 variable))]
+            (list '- (derivative term1 variable) (derivative term2 variable))]
            [(*)
             (list '+
-                  (list '* (ableitung term1 variable) term2)
-                  (list '* term1 (ableitung term2 variable)))]
+                  (list '* (derivative term1 variable) term2)
+                  (list '* term1 (derivative term2 variable)))]
            [(/)
             (list '/
                   (list '-
-                        (list '* (ableitung term1 variable) term2)
-                        (list '* term1 (ableitung term2 variable)))
+                        (list '* (derivative term1 variable) term2)
+                        (list '* term1 (derivative term2 variable)))
                   (list '² term2))]
-           ;hier stehen weitere Regeln binärer Operationen
            [else
             'Unbekannt!]))]
       [else
        'Unbekannt!])))
 
-;simplification until no more simplification is possible
+;simplification of the term until no more simplification is possible
 (define simplification
   (lambda (term)
-    (if (not (eqv? term (sub-simplifyterm)))
-        (simplification (sub-simplifyterm))
-        (sub-simplifyterm)) ))
+    (if (not (eqv? term (sub-simplify term)))
+        (simplification (sub-simplify term))
+        (sub-simplify term)) ))
 
-;Vereinfachungsregeln
+;simplification of one term (not the result of this simplification)
 (define sub-simplify
   (lambda (term)
     (letrec
         ([help-unop
           (lambda (op term1)
             (case op
-              [(+ *) (sub-simplifyterm1)]
-              [(/) (list '/ 1 (sub-simplifyterm1))]
-              ;hier stehen weitere Vereinfachungsregeln für unäre Operationen
+              ;simplification of unary operations (only one term)
+              [(+ *) (sub-simplify term1)]
+              [(/) (list '/ 1 (sub-simplify term1))]
              [else
-              (list op (sub-simplifyterm1))]))]
+              (list op (sub-simplify term1))]))]
          [help-binop
           (lambda (op term1 term2)
             (case op
+              ;simplification of binary operations (two terms)
               [(+) (cond
-                     [(eqv? term1 0) (sub-simplifyterm2)]
-                     [(eqv? term2 0) (sub-simplifyterm1)]
-                     [(equal? term1 term2) (list '* 2 (sub-simplifyterm1))]
+                     [(eqv? term1 0) (sub-simplify term2)]
+                     [(eqv? term2 0) (sub-simplify term1)]
+                     [(equal? term1 term2) (list '* 2 (sub-simplify term1))]
                      [(and (number? term1) (number? term2)) (+ term1 term2)]
                      [else
-                      (list '+ (sub-simplifyterm1) (sub-simplifyterm2))])]
+                      (list '+ (sub-simplify term1) (sub-simplify term2))])]
               [(-) (cond
-                     [(eqv? term1 0) (sub-simplifyterm2)]
-                     [(eqv? term2 0) (sub-simplifyterm1)]
+                     [(eqv? term1 0) (sub-simplify term2)]
+                     [(eqv? term2 0) (sub-simplify term1)]
                      [(and (number? term1) (number? term1)) (- term1 term2)]
                      [(equal? term1 term2) (0)]
-                     ;[(and (number? term1) (number? term2)) (+ term1 term2)]
                      [else
-                      (list '- (sub-simplifyterm1) (sub-simplifyterm2))])]
+                      (list '- (sub-simplify term1) (sub-simplify term2))])]
               [(*) (cond
                      [(eqv? term1 0) 0]
                      [(eqv? term2 0) 0]
-                     [(eqv? term1 1) (sub-simplifyterm2)]
-                     [(eqv? term2 1) (sub-simplifyterm1)]
+                     [(eqv? term1 1) (sub-simplify term2)]
+                     [(eqv? term2 1) (sub-simplify term1)]
                      [(and (number? term1) (number? term1)) (* term1 term2)]
                      [else
-                      (list '* (sub-simplifyterm1) (sub-simplifyterm2))])]
+                      (list '* (sub-simplify term1) (sub-simplify term2))])]
               [(/) (cond
-                     [(eqv? term2 1) '(sub-simplifyterm1)]
+                     [(eqv? term2 1) '(sub-simplify term1)]
                      [(and (number? term1) (number? term1)) (/ term1 term2)]
                      [else
-                      (list '/ (sub-simplifyterm1) (sub-simplifyterm2))])]
-              ;hier stehen weitere Vereinfachungsregeln für binäre Operationen
+                      (list '/ (sub-simplify term1) (sub-simplify term2))])]
               [else
                term]))])
       (cond
