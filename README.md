@@ -12,7 +12,7 @@ Derivation of terms containing
 * power and nth root (^, √)
 * logarithm (ln, log)
 
-**Examples**
+## Examples
 ```
 (derivative '(* 5 (sin x)) 'x)
 ```
