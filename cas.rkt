@@ -48,11 +48,7 @@
                   (list '* (derivative term1 variable) term2)
                   (list '* term1 (derivative term2 variable)))]
            [(/)
-            (list '/
-                  (list '-
-                        (list '* (derivative term1 variable) term2)
-                        (list '* term1 (derivative term2 variable)))
-                  (list '² term2))]
+            (derivative (list '* term1 (list '^ term2 (- 1))) variable)]
            [(log)
             (list '/ 1 (list '* term1 (list 'ln term2)))]
            ;TODO: add ^
