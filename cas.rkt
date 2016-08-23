@@ -1,28 +1,8 @@
 #lang racket
 (define ^ expt)
-(define sqr(lambda(x) (* x x)))
 (define ² sqr)
 (define ln log)
 (define e (exp 1))
-
-
-(define superelement?
-  (lambda (el ls)
-    (cond
-      [(null? ls) #f]
-      [(list? (car ls)) (or (superelement? el (car ls)) (superelement? el (cdr ls)))]
-      [(equal? el (car ls)) #t]
-      [else
-       (superelement? el (cdr ls))])))
-
-(define berechne
-  (lambda (term variable value)
-    (cond
-      [(number? term) term]
-      [(equal? 'Unbekannt! term) 'Unbekannt!]
-      [(superelement? 'Unbekannt! term) 'Unbekannt!]
-      [else
-       ((eval (list 'lambda (list variable) term)) value)])))
 
 ;derivation
 (define derivative
@@ -38,18 +18,23 @@
             (list '+ (derivative term1 variable))]
            [(-)
             (list '- (derivative term1 variable))]
+           ;sqr(x) == x*x
            [(sqr)
-            (list '*
-                  (list '/
-                        1
-                        (list '* 2 (derivative term1 variable)))
-                  (derivative term1 variable))]
+            (derivative (list '* term1 term1) variable)]
+           ;sqrt(x) == x^(1/2)
+           [(sqrt)
+            (derivative (list '^ term1 (/ 1 2)) variable)]
            [(sin)
-            (list '*
-                  (list 'cos term1)
-                  (derivative term1 variable))]
+            (list 'cos term1)]
+           [(cos)
+            (list '-sin term1)]
+           ;tan(x) == sin(x)/cos(x)
+           [(tan)
+            (derivative (list '/ (list 'sin term1) (list 'cos term1)) variable)]
+           [(ln)
+            (derivative (list 'log term1 'e) variable)]
            [else
-            'Unbekannt!]))]
+            'Unknown!]))]
       [(= (length term) 3)
        (let ([op (car term)] [term1 (cadr term)] [term2 (caddr term)])
          (case op
@@ -68,10 +53,13 @@
                         (list '* (derivative term1 variable) term2)
                         (list '* term1 (derivative term2 variable)))
                   (list '² term2))]
+           [(log)
+            (list '/ 1 (list '* term1 (list 'ln term2)))]
+           ;TODO: add ^
            [else
-            'Unbekannt!]))]
+            'Unknown!]))]
       [else
-       'Unbekannt!])))
+       'Unknown!])))
 
 ;simplification of the term until no more simplification is possible
 (define simplification
